@@ -2,11 +2,13 @@ package com.partner_task.kafkaproducer.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.partner_task.kafkaproducer.dtos.CreateUserRequestDto;
 import com.partner_task.kafkaproducer.dtos.WelcomeUserDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ProducerServiceImpl implements ProductService {
@@ -29,6 +31,15 @@ public class ProducerServiceImpl implements ProductService {
         welcomeUserDto.setBody("Dear " + firstName + ", welcome to our platform. We are excited to have you onboard!");
 
         String message = objectMapper.writeValueAsString(welcomeUserDto);
-        kafkaTemplate.send("sendEmail", message);
+        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send("email-publish2", message);
+        future.whenComplete((result,ex) -> {
+            if(ex != null) {
+                System.out.println(result.getRecordMetadata().serializedValueSize());
+                System.out.println(result.getRecordMetadata().partition());
+            }
+            else {
+                System.out.println(ex.getMessage());
+            }
+        });
     }
 }
